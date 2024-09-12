@@ -1,0 +1,30 @@
+[
+  {
+    "nbRooms": 4,
+    "surface": 10,
+    "nbWindows": 3,
+    "price": 100000,
+    "id": 1
+  },
+  {
+    "nbRooms": 4,
+    "surface": 12,
+    "nbWindows": 3,
+    "price": 100000,
+    "id": 2
+  },
+  {
+    "nbRooms": 4,
+    "surface": 15,
+    "nbWindows": 3,
+    "price": 100000,
+    "id": 3
+  },
+  {
+    "nbRooms": 4,
+    "surface": "15",
+    "nbWindows": "2",
+    "price": 100000,
+    "id": 1725972975351
+  }
+]

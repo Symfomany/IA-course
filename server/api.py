@@ -2,6 +2,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import LabelEncoder
+
 from sklearn.model_selection import train_test_split
 
 from loguru import logger
@@ -30,6 +33,12 @@ model = LinearRegression()
 
 # Initialisation du modèle de régression linéaire
 modelSecond = LogisticRegression(max_iter=200)
+
+
+# Initialisation du modèle de régression linéaire
+modelThird = KNeighborsClassifier(n_neighbors=3)
+
+
 
 
 # Variable pour vérifier si le modèle est entraîné
@@ -63,6 +72,8 @@ async def train():
     # Split the data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42)
+    
+
 
     # Train the model
     modelSecond.fit(X_train, y_train)
@@ -73,6 +84,33 @@ async def train():
     # Logging avec Loguru
     logger.info("Modèle entraîné avec succès.")
     logger.info(f"Coefficients: {model.coef_}, Intercept: {model.intercept_}")
+
+    def classify_apartment(nb_rooms):
+        if nb_rooms == 1:
+            return 'F1'
+        elif nb_rooms == 2:
+            return 'F2'
+        elif nb_rooms == 3:
+            return 'F3'
+        else:
+            return 'F4'
+
+    df['apartment_type'] = df['nbRooms'].apply(classify_apartment)
+
+    # Encodage des catégories F1, F2, F3, F4
+    label_encoder = LabelEncoder()
+    df['apartment_type_encoded'] = label_encoder.fit_transform(
+        df['apartment_type'])
+
+    # Extraction des variables indépendantes (surface et prix) et dépendante (type d'appartement)
+    X = df[['surface']]  # Variables explicatives
+    y = df['apartment_type_encoded']  # Variable cible (F1, F2, F3, F4)
+
+    # Diviser les données en ensembles d'entraînement et de test
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42)
+    modelThird.fit(X_train, y_train)
+
 
     return {"message": "Modèle entraîné avec succès."}
 
@@ -112,6 +150,24 @@ async def predictcategory(data: PredictionDataAppartement):
     logger.info(f"Prix prédit: {predicted_price}")
 
     return {"predicted_price": predicted_price}
+
+
+@app.post("/predict-type")
+async def predictype(data: PredictionData):
+    X_new = np.array(
+        [[data.surface],])
+
+    # Prédire le prix
+    predicted_type = modelThird.predict(X_new)[0]
+    
+    label_encoder = LabelEncoder()
+    predicted_type = label_encoder.inverse_transform(predicted_type)
+
+    # Logging avec Loguru
+    logger.info(f"Prédiction faite pour surface: {data.surface}")
+    logger.info(f"Catégorie prédite: {predicted_type}")
+
+    return {"predicted_type": predicted_type}
 
 
 if __name__ == "__main__":

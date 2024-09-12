@@ -36,8 +36,10 @@ modelSecond = LogisticRegression(max_iter=200)
 
 
 # Initialisation du modèle de régression linéaire
-modelThird = KNeighborsClassifier(n_neighbors=3)
+modelThird = KNeighborsClassifier(n_neighbors=5)
 
+# Utilisation cohérente de l'encodeur : L'encodeur label_encoder que vous avez utilisé pour transformer les catégories lors de l'entraînement doit être réutilisé pour inverser cette transformation lors de la prédiction.
+label_encoder = LabelEncoder()
 
 
 
@@ -85,30 +87,30 @@ async def train():
     logger.info("Modèle entraîné avec succès.")
     logger.info(f"Coefficients: {model.coef_}, Intercept: {model.intercept_}")
 
-    def classify_apartment(nb_rooms):
-        if nb_rooms == 1:
+    def classify_apartment_by_surface(surface):
+        if surface < 40:
             return 'F1'
-        elif nb_rooms == 2:
+        elif 40 <= surface < 60:
             return 'F2'
-        elif nb_rooms == 3:
+        elif 60 <= surface < 80:
             return 'F3'
         else:
             return 'F4'
 
-    df['apartment_type'] = df['nbRooms'].apply(classify_apartment)
+    df['apartment_type'] = df['surface'].apply(classify_apartment_by_surface)
 
     # Encodage des catégories F1, F2, F3, F4
-    label_encoder = LabelEncoder()
     df['apartment_type_encoded'] = label_encoder.fit_transform(
         df['apartment_type'])
 
     # Extraction des variables indépendantes (surface et prix) et dépendante (type d'appartement)
-    X = df[['surface']]  # Variables explicatives
+    X = df[['surface',]]  # Variables explicatives
     y = df['apartment_type_encoded']  # Variable cible (F1, F2, F3, F4)
 
     # Diviser les données en ensembles d'entraînement et de test
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42)
+    
     modelThird.fit(X_train, y_train)
 
 
@@ -157,18 +159,12 @@ async def predictype(data: PredictionData):
     X_new = np.array(
         [[data.surface],])
 
-    # Prédire le prix
-    predicted_type = modelThird.predict(X_new)[0]
-    
-    label_encoder = LabelEncoder()
-    predicted_type = label_encoder.inverse_transform(predicted_type)
-
-    # Logging avec Loguru
-    logger.info(f"Prédiction faite pour surface: {data.surface}")
-    logger.info(f"Catégorie prédite: {predicted_type}")
+  
+    predicted_type_encoded = modelThird.predict(X_new)[0]
+    predicted_type = label_encoder.inverse_transform(
+        [predicted_type_encoded])[0]
 
     return {"predicted_type": predicted_type}
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=5000)
